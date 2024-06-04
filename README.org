@@ -1,0 +1,6 @@
+* k8s-nix-ops
+
+An opinionated kubernetes operations tool.
+
+
+The goal of k8s-nix-ops is to have a simplified config file (nix expression) that can describe a complete environment, from the hardware/cloud resources to the kubernetes config.
