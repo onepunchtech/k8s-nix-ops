@@ -1,7 +1,8 @@
-{ config, lib, ... }:
+{ config, lib, charts, kubelib, ... }:
 let
   templatesOption = lib.mkOption {
       description = "Attrset of yaml templates for helm chart";
+      default = {};
       type = lib.types.attrsOf lib.types.str;
     };
 in {

@@ -14,6 +14,8 @@
       system = "x86_64-linux";
       #pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
       pkgs = nixpkgs.legacyPackages.${system};
+      kubelib = nix-kube-generators.lib { inherit pkgs; };
+      charts = nixhelm.charts { inherit pkgs; };
       #makeK8sConfigs = config: {
       #terraformConfig = import ./lib/hardware.nix {inherit system terranix; };
       #k8sConfig = import ./lib/k8s.nix { inherit pkgs nix-kube-generators nixhelm; };
@@ -33,8 +35,15 @@
               ];
             };
           };
+          features = {
+            certManager = {
+              enabled = true;
+              issuerEmail = "whitehead@onepunchtech.xyz";
+            };
+          };
         }
-          ./lib/modules/root.nix];
+                   ({ config, ... }: { config._module.args = { inherit pkgs charts kubelib; }; })
+                   ./lib/modules/root.nix];
       };
 
       validatedConfiguration = import ./lib/validate.nix { lib = nixpkgs.lib; config = configuration.config; };
@@ -46,7 +55,7 @@
         };
 
       helm = import ./lib/chart-builder.nix {
-        pkgs = nixpkgs.lib;
+        pkgs = pkgs;
         helmChartsConfig = validatedConfiguration.helmCharts;
       };
 
