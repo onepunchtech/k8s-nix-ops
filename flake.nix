@@ -4,7 +4,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     nix-kube-generators.url = "github:farcaller/nix-kube-generators?ref=14dbd5e5b40615937900f71d9a9851b59b4d9a88";
-    nixhelm.url = "github:farcaller/nixhelm?ref=785c1e2d9ab8bb0db049ff1ab983b7f73f073d51";
+    #nixhelm.url = "github:farcaller/nixhelm?ref=785c1e2d9ab8bb0db049ff1ab983b7f73f073d51";
+    nixhelm.url = "github:farcaller/nixhelm?ref=12136f5aece74f62356662f50904633c7c783418";
     flake-utils.url = "github:numtide/flake-utils";
     terranix.url = "github:terranix/terranix";
   };

@@ -5,11 +5,20 @@ with lib; let
 
     };
   };
-  certManager = (kubelib.buildHelmChart {
-    name = "certificateManager";
+
+  yamls = kubelib.fromHelm {
+    name = "crtmgr";
     chart = charts.jetstack.cert-manager;
-    namespace = "foo";
-  });
+    namespace = "default";
+    includeCRDs = false;
+    values = {crds.enabled = true;};
+    #extraOpts = ["--set crds.enabled=true"];
+  };
+
+  certMgrCrds = builtins.filter (x: x.kind == "CustomResourceDefinition") yamls;
+
+  certMgrInfra = builtins.filter (x: x.kind != "CustomResourceDefinition") yamls;
+
 in {
   options = {
     features.certManager = {
@@ -23,8 +32,8 @@ in {
 
   config = mkIf config.features.certManager.enabled {
     helmCharts = {
-      crds.templates = { certManager = builtins.trace certManager "foo";};
-      infra.templates = { certManager = "certManager: fooService";};
+      crds.templates = { certManager = kubelib.toYAMLStreamFile certMgrCrds;};
+      infra.templates = { certManager = kubelib.toYAMLStreamFile certMgrInfra;};
     };
   };
 }
