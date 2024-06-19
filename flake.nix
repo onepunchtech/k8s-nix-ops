@@ -15,7 +15,7 @@
       system = "x86_64-linux";
       #pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
       pkgs = nixpkgs.legacyPackages.${system};
-      kubelib = nix-kube-generators.lib { inherit pkgs; };
+      kubelib = import ./lib/kubelib.nix { kubelib = nix-kube-generators.lib { inherit pkgs; }; };
       charts = nixhelm.charts { inherit pkgs; };
       #makeK8sConfigs = config: {
       #terraformConfig = import ./lib/hardware.nix {inherit system terranix; };
@@ -37,14 +37,42 @@
             };
           };
           features = {
+            ingress.enabled = true;
             certManager = {
               enabled = true;
               issuerEmail = "whitehead@onepunchtech.xyz";
+              issuerName = "letsencrypt-prod";
+            };
+            externalDns = {
+              enabled = true;
+            };
+          };
+
+          privateRegistries = {
+            onepunchtech-registry = {
+              registryUrl = "registry-1.docker.io";
+              secret = "registry.secret";
+            };
+          };
+
+          services = {
+            onepunchtechxyz = {
+              image = "whiteheadoptech/onepunchtech.xyz:0.0.3";
+              replicas = 1;
+              registry = "registry-1.docker.io";
+              port = 3000;
+              ingresses = [
+                {
+                  host = "dev.onepunchtech.xyz";
+                  path = "/";
+                }
+              ];
+
             };
           };
         }
-                   ({ config, ... }: { config._module.args = { inherit pkgs charts kubelib; }; })
-                   ./lib/modules/root.nix];
+          ({ config, ... }: { config._module.args = { inherit charts kubelib; }; })
+          ./lib/modules/root.nix];
       };
 
       validatedConfiguration = import ./lib/validate.nix { lib = nixpkgs.lib; config = configuration.config; };
@@ -72,9 +100,9 @@
           '';
         };
     in
-      {
-        packages.${system}.default = testOut;
+    {
+      packages.${system}.default = testOut;
 
-        #inherit makeK8sConfigs;
-      };
+      #inherit makeK8sConfigs;
+    };
 }

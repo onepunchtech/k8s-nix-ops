@@ -10,27 +10,14 @@ in {
     ./hardware/linode.nix
     ./hardware/k0s.nix
     ./features.nix
+    ./privateRegistries.nix
+    ./services.nix
   ];
 
   options = with lib; {
     clusterName = lib.mkOption {
       description = "Name of cluster";
       type = types.str;
-    };
-
-    # features = {
-    #   description = "List of features for cluster";
-    #   type = types.submodule ./features.nix;
-    # };
-
-    privateRegistries = {
-      description = "private registries";
-      type = types.submodule ./privateRegistry.nix;
-    };
-
-    services = {
-      description = "Services";
-      type = (types.listOf (types.submodule ./service.nix));
     };
 
     terraformOutput.tfModule = mkOption {
@@ -41,7 +28,7 @@ in {
     helmCharts = {
       crds.templates = templatesOption;
       infra.templates = templatesOption;
-      services.templates = templatesOption;
+      apps.templates = templatesOption;
     };
   };
 }
