@@ -19,12 +19,12 @@ let
         type = lib.types.str;
       };
 
-      path = lib.mkOption {
+      name = lib.mkOption {
         type = lib.types.str;
       };
 
-      tlsOpts = lib.mkOption {
-        type = lib.types.nullOr (lib.types.submodule tlsOptsModule);
+      path = lib.mkOption {
+        type = lib.types.str;
       };
     };
   };
@@ -54,25 +54,25 @@ let
     };
   };
 
-  mkIngress = { name, issuerName, ingressClassName, host, path, serviceName, port }: {
+  mkIngress = { cfg, serviceName, port }: ingressMod: {
     apiVersion = "networking.k8s.io/v1";
     kind = "Ingress";
     metadata = {
-      name = name;
+      name = ingressMod.name;
       annotations = {
-        "cert-manager.io/issuer" = issuerName;
+        "cert-manager.io/issuer" = cfg.features.certManager.issuerName;
       };
     };
 
     spec = {
-      ingressClassName = ingressClassName;
-      tls = [{ hosts = [ host ]; secretName = "${name}-tls"; }];
+      ingressClassName = cfg.features.ingress.className;
+      tls = [{ hosts = [ ingressMod.host ]; secretName = "${ingressMod.name}-tls"; }];
       rules = [
         {
-          host = host;
+          host = ingressMod.host;
           http.paths = [
             {
-              path = path;
+              path = ingressMod.path;
               pathType = "Prefix";
               backend =
                 {
@@ -88,12 +88,14 @@ let
     };
   };
 
-  serviceModuleToTemplate = config: name: serviceMod:
+  serviceModuleToTemplate = cfg: name: serviceMod:
     let
       privateRegistry =
-        if (builtins.hasAttr serviceMod.registry config.privateRegistries)
-        then null
-        else config.privateRegistries."${serviceMod.registry}";
+        if (builtins.hasAttr serviceMod.registry cfg.privateRegistries)
+        then cfg.privateRegistries."${serviceMod.registry}"
+        else null;
+
+      ingresses = builtins.map (mkIngress { cfg = cfg; serviceName = name; port = serviceMod.port; }) serviceMod.ingresses;
 
       service = {
         apiVersion = "v1";
@@ -139,14 +141,14 @@ let
                 };
               };
               imagePullSecrets.name =
-                if (builtins.null privateRegistry)
+                if (builtins.isNull privateRegistry)
                 then null
                 else serviceMod.registry;
             };
           };
         };
       };
-      yamls = [ service deployment ];
+      yamls = [ service deployment ] ++ ingresses;
     in
     kubelib.toYAMLStreamFile yamls;
 
@@ -164,6 +166,6 @@ in
   };
 
   config = lib.mkIf (builtins.length (builtins.attrNames config.services) > 0) {
-    helmCharts.apps.templates = lib.attrsets.mapAttrs serviceModuleToTemplate config.services;
+    helmCharts.apps.templates = lib.attrsets.mapAttrs (serviceModuleToTemplate config) config.services;
   };
 }

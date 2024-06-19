@@ -59,10 +59,11 @@
             onepunchtechxyz = {
               image = "whiteheadoptech/onepunchtech.xyz:0.0.3";
               replicas = 1;
-              registry = "registry-1.docker.io";
+              registry = "onepunchtech-registry";
               port = 3000;
               ingresses = [
                 {
+                  name = "dev-onepunchtech-xyz";
                   host = "dev.onepunchtech.xyz";
                   path = "/";
                 }
@@ -85,6 +86,7 @@
 
       helm = import ./lib/chart-builder.nix {
         pkgs = pkgs;
+        kubelib = kubelib;
         helmChartsConfig = validatedConfiguration.helmCharts;
       };
 

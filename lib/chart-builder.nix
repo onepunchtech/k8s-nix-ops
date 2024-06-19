@@ -1,4 +1,4 @@
-{ pkgs, helmChartsConfig }:
+{ pkgs, kubelib, helmChartsConfig }:
 
 with pkgs;
 
@@ -14,7 +14,7 @@ let
 
       putInTemplateDir = name: template: pkgs.stdenv.mkDerivation {
         name = "${name}-template-isolate";
-        phases = ["installPhase"];
+        phases = [ "installPhase" ];
         installPhase = ''
           mkdir $out
           ln -s ${template} $out/${name}.yaml
@@ -30,25 +30,49 @@ let
       };
 
     in
-      pkgs.stdenv.mkDerivation {
-        name = "chart-${name}";
-        phases = ["installPhase"];
-        installPhase = ''
-          mkdir $out
+    pkgs.stdenv.mkDerivation {
+      name = "chart-${name}";
+      phases = [ "installPhase" ];
+      installPhase = ''
+        mkdir $out
 
-          ln -s ${chartYaml} $out/Chart.yaml
-          ln -s ${templatesDir} $out/templates
-        '';
-      };
+        ln -s ${chartYaml} $out/Chart.yaml
+        ln -s ${templatesDir} $out/templates
+      '';
+    };
+
+  helmFile = kubelib.toYAMLFile {
+    releases = [
+      {
+        name = "crds";
+        chart = "./crds";
+      }
+      {
+        name = "infra";
+        chart = "./infra";
+        needs = [ "crds" ];
+      }
+      {
+        name = "apps";
+        chart = "./apps";
+        needs = [ "infra" ];
+      }
+    ];
+
+  };
+
 
   builtCharts = lib.attrsets.mapAttrs mkChartDerivation helmChartsConfig;
 
-in pkgs.stdenv.mkDerivation {
+in
+pkgs.stdenv.mkDerivation {
   name = "helmChartsOut";
-  phases = ["installPhase"];
+  phases = [ "installPhase" ];
   installPhase = ''
     mkdir $out
     ln -s ${builtCharts.crds} $out/crds
     ln -s ${builtCharts.infra} $out/infra
+    ln -s ${builtCharts.apps} $out/apps
+    ln -s ${helmFile} $out/helmfile.yaml
   '';
 }
