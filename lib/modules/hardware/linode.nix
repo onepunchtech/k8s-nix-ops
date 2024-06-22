@@ -67,6 +67,11 @@
           version = "2.20.1";
         };
 
+        terraform.required_providers.sops = {
+          source = "carlpett/sops";
+          version = "1.0.0";
+        };
+
         provider.linode.token = "\${ data.sops_file.secrets.data[\"${config.hardware.linode.apiToken}\"] }";
 
         resource.linode_lke_cluster.${clusterName} = {
